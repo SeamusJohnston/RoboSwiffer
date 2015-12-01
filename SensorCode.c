@@ -1,4 +1,7 @@
 //Master needs to connect(so this robot)
+//The following function checks the values of the sensors and
+//sends ONLY the value of the sensor which was triggered (we
+//do this to avoid the loop sending all sensor values consecutively).
 void checkSensors()
 {
 	int count=0;
@@ -20,6 +23,8 @@ void checkSensors()
 
 }
 
+//The following function rotates the turrent either clockwise or
+//counter clock wise based on the integer parameter passed to it.
 void rotateTurret (int turretDirection)
 {
 	if(turretDirection==1)
@@ -37,6 +42,9 @@ void rotateTurret (int turretDirection)
 	nMotorEncoder[motorA]=0;
 }
 
+//The following function flips the turrent back 180 degrees to
+//avoid the cable tangling on the turret. The direction of this
+//turn is based on the integer parameter passed to it.
 void flipTurret(int direction)
 {
 	if(direction==1)
@@ -48,7 +56,7 @@ void flipTurret(int direction)
 }
 	else if (direction==2)
 	{
-		while(nMotorEncoder[motorA]>0)
+		while(nMotorEncoder[motorA]>-180)
 	{
 		motor[motorA]=-10;
 	}
@@ -56,8 +64,10 @@ void flipTurret(int direction)
 nMotorEncoder[motorA]=0;
 motor[motorA]=0;
 }
+
 task main()
 {
+    //Sensor initialization
 	SensorType[S1]=sensorTouch;
 	SensorType[S2]=sensorTouch;
 	SensorType[S3]=sensorTouch;
@@ -65,10 +75,13 @@ task main()
 
 	float lengthOfRobot=32;
 
+    //Checks sensor values and while perimeterX is running in the motor brick
 	while(SensorValue[S1]!=1)
 	{
 	}
 	checkSensors();
+
+    //Checks sensor values while perimeterY is running in the motor brick
 	while(SensorValue[S2]!=1)
 	{
 	}
@@ -76,28 +89,25 @@ task main()
 	wait1Msec(1000);
 	while((SensorValue[S1]!=1) || (SensorValue[S3]!=1 ))
 	{
+        //While the robot is driving, sensor brick is checking to see if obstacles are hit
 		while(SensorValue[S2]!=1&&SensorValue[S3]!=1)
 		{
 			checkSensors();
-			displayString(0,"IN CHECKING");
 
 		}
 		checkSensors();
+
+        //This if is entered if the front sensor is hit by an obstacle during a vertical path
 		if(SensorValue[S2])
 		{
-			eraseDisplay();
-			displayString(0, "I SEE U BITCH");
-			displayString(1, "%f", SensorValue[S4]);
-
+            //Waits while robot strafes right around obstacle
 			while(SensorValue[S4]<lengthOfRobot)
 			{}
-			eraseDisplay();
-			displayString(0, "I DUN SEE U BITCH");
-			displayString(2, "%f", SensorValue[S4]);
 			rotateTurret(1);
 			sendMessage(4);
-			wait1Msec(1500);
+			wait1Msec(3000);
 
+            //Waits while robot drives forward along the side of the obstacle
 			while(SensorValue[S4]<lengthOfRobot)
 			{}
 			wait1Msec(1500);
@@ -105,20 +115,26 @@ task main()
 			rotateTurret(2);
 		}
 
+        //This if is entered if the back sensor is hit by an obstacle during a vertical path
 		else if(SensorValue[S3])
 		{
 			flipTurret(1);
+
+            //Waits while robot strafes right around obstacle
 			while(SensorValue[S4]<lengthOfRobot)
 			{}
-			displayString(0, "%d", SensorValue[S4]);
 			rotateTurret(2);
 			sendMessage(4);
-			wait1Msec(1500);
+			wait1Msec(3000);
+
+            //Waits while robot drives backwards along the side of the obstacle
 			while(SensorValue[S4]<lengthOfRobot)
 			{}
-			wait1Msec(500);
+			wait1Msec(1000);
 			sendMessage(4);
-			rotateTurret(2);
+			rotateTurret(1);
+			flipTurret(2)
+
 		}
 	}
 
