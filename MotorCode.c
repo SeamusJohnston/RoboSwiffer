@@ -1,4 +1,4 @@
-bool notReceived (int messageNumber1)
+bool notReceived (int messageNumber1) //checks  to make sure the sensor block hasn't sent a message
 {
 	int myMessage=0;
 	if(myMessage==0)
@@ -9,13 +9,13 @@ bool notReceived (int messageNumber1)
 	{
 		ClearMessage();
 
-		return false;
+		return false;  //returns false if it finds a message corresponding to the specified integer
 	}
 	else
-		return true;
+		return true; //returns true if none have been found
 }
 
-float encoderCalcDrive ()
+float encoderCalcDrive () //returns the distance travelled forward or backwards
 {
 
 	float encoderB=nMotorEncoder[motorB];
@@ -24,124 +24,53 @@ float encoderCalcDrive ()
 	return travelledY;
 }
 
-float encoderCalcStrafe ()
+float encoderCalcStrafe () //returns the distance travelled right or left
 {
 	float encoderA=nMotorEncoder[motorA];
 	float distX= ((15.072*encoderA/360));
 	return distX;
 }
-float convert(float rawValue)		//converts raw PID value into a motor output between 0 & 100;
+
+
+bool drive(int direction, float distance) //drives a certain direction for a specified distance (1=forward, 2=backwards, 3=right, 4=left)
 {
-	return rawValue/2000;
-}
-
-bool drive(int direction, float distance)//Add float position to parameters
-{
-	float correctValueA = 0;
-	float correctValueB = 0;
-	float correctValueC = 0;
-
-	const float kP = 700;
-	const float kD = 700;
-	const float kI = 700; // PID constants
-	const int time = 20; //loop speed
-
-	float errorPrevA = 0;	//used to calculate derivatives of error
-	float errorPrevB = 0;
-	float errorPrevC = 0;
-
-	float errorSumA = 0;	//integrals of error
-	float errorSumB = 0;
-	float errorSumC = 0;
-
-	//setInitialSpeed(motor[motorA], motor[motorB], motor[motorC], x, y, xGoal, yGoal);
 
 
-	motor[motorA] = 0;
-	motor[motorB] = 0;
-	motor[motorC] = 0;
+    if (direction==1)
+    {
+        motor[motorA]=0;
+        motor[motorB]=-57;
+        motor[motorC]=60;
+    }
+    else if(direction==2)
+    {
+        motor[motorA]=0;
+        motor[motorB]= 57;
+        motor[motorC]=-60;
 
+    }
+    else if (direction==4)
+    {
+        motor[motorA]=40;
+        motor[motorB]=-20 ;
+        motor[motorC]=-20;
+
+    }
+    else if (direction==3)
+    {
+        motor[motorA]=-39;
+        motor[motorB]=20;
+        motor[motorC]=20;
+    }
+
+	float distanceTravelled=0;
 	nMotorEncoder[motorA]=0;
 	nMotorEncoder[motorB]=0;
 	nMotorEncoder[motorC]=0;
 
-	float motorAGoal, motorBGoal, motorCGoal;
-	if (direction==1)
+	while (notReceived(1)&&notReceived(2)&&notReceived(3) && distanceTravelled < distance) //while no messages received from touch sensors and it hasnt reached it's destination
 	{
-		motorAGoal = (0 +  correctValueA);
-		motorBGoal = -(0.7 + correctValueB);
-		motorCGoal = (0.7  + correctValueC);
-	}
-	else if(direction==2)
-	{
-		motorAGoal = (0 + correctValueA);
-		motorBGoal = (0.7 + correctValueB);
-		motorCGoal = -(0.7 + correctValueC);
-	}
-	else if (direction==4)
-	{
-		motorAGoal = (0.8 + correctValueA);
-		motorBGoal = -(0.20 + correctValueB);
-		motorCGoal = -(0.20 + correctValueC);
-	}
-	else if (direction==3)
-	{
-		motorAGoal = -(0.8 + correctValueA);
-		motorBGoal = (0.20 + correctValueB);
-		motorCGoal = (0.20 + correctValueC);
-	}
-	float distanceTravelled=0;
-	//setMotorGoals(motorAGoal, motorBGoal, motorCGoal, x, y, xGoal, yGoal);
-	//	int counter = 0;
-
-	while (notReceived(1)&&notReceived(2)&&notReceived(3) && distanceTravelled < distance) //And while not at position
-	{
-		float encoderIA = nMotorEncoder[motorA];	//gets first point for calculations
-		float encoderIB = nMotorEncoder[motorB];
-		float encoderIC = nMotorEncoder[motorC];
-
-		wait1Msec(time); //waits so we can track a change in encoder position and calculate velocity
-
-		float encoderFA = nMotorEncoder[motorA];	//ges the second point for calculations
-		float encoderFB = nMotorEncoder[motorB];
-		float encoderFC = nMotorEncoder[motorC];
-
-		float errorA = motorAGoal - (encoderFA - encoderIA)/time;	//calculates error (for P control)
-		float errorB = motorBGoal - (encoderFB - encoderIB)/time;
-		float errorC = motorCGoal - (encoderFC - encoderIC)/time;
-
-
-		float errorDA = (errorA - errorPrevA)/time;	//calculates derivative of error using current error and past error
-		float errorDB = (errorB - errorPrevB)/time;
-		float errorDC = (errorC - errorPrevC)/time;
-
-
-		errorSumA += errorA * time;					//adds to the sum of the error (integral)
-		errorSumB += errorB * time;
-		errorSumC += errorC * time;
-
-		motor[motorA] = convert(kP * errorA + kD * errorDA + kI * errorSumA);	//convert turns sum of paths into motor output through math or something
-		motor[motorB] = convert(kP * errorB + kD * errorDB + kI * errorSumB);
-		motor[motorC] = convert(kP * errorC + kD * errorDC + kI * errorSumC);
-
-
-
-		errorPrevA = errorA;
-		errorPrevB = errorB;
-		errorPrevC = errorC;
-		/*
-		counter++;
-
-		if (counter == 10)
-		{
-		displayString(0, "%d", motor[motorB]);
-		displayString(1, "%d", motor[motorC]);
-		displayString(2, "%f", (encoderFB - encoderIB)/time);
-		displayString(3, "%f", (encoderFC - encoderIC)/time);
-		counter = 0;
-		}
-		*/
-		if(direction==1)
+		if(direction==1) //calculates distance travelled based on direction
 			distanceTravelled=encoderCalcDrive();
 		else if (direction==2)
 			distanceTravelled=-encoderCalcDrive();
@@ -149,252 +78,149 @@ bool drive(int direction, float distance)//Add float position to parameters
 			distanceTravelled=encoderCalcStrafe();
 		else if (direction==3)
 			distanceTravelled=-encoderCalcStrafe();
-	displayString(0,"%d", distanceTravelled);
-	displayString(1,"%d",message);
 
 	}
 	motor[motorA] = 0;
 	motor[motorB] = 0;
 	motor[motorC] = 0;
 
-	if (distanceTravelled>distance)
+	if (distanceTravelled>distance) //returns whether or not it was hit based on whether it stopped because of distance
 	return false;
 	else
 		return true;
 
-	while(notReceived(1)!=1)
-	{
-		motor[motorA] = 0;
-		motor[motorB] = 5;
-		motor[motorC] = -5;
-
-		return true;
-	}
-	while(notReceived(2)!=1)
-	{
-		motor[motorA] = -6;
-		motor[motorB] = 3;
-		motor[motorC] = 3;
-		return true;
-		displayString(4,"NIGGA GOT HIT FAM");
-
-	}
-	while(notReceived(3)!=1)
-	{
-		motor[motorA] = 0;
-		motor[motorB] = -5;
-		motor[motorC] = 5;
-		return true;
-	}
-	return false;
 
 }
-void driveObstacle(int direction)
+void driveObstacle(int direction) //Same as drive function with different exit conditions for the PID drive loop
 {
-	float correctValueA = 0;
-	float correctValueB = 0;
-	float correctValueC = 0;
 
-	const float kP = 700;
-	const float kD = 700;
-	const float kI = 700; // PID constants
-	const int time = 20; //loop speed
+ if (direction==1)
+    {
+        motor[motorA]=0;
+        motor[motorB]=-58;
+        motor[motorC]=60;
+    }
+    else if(direction==2)
+    {
+        motor[motorA]=0;
+        motor[motorB]= 90;
+        motor[motorC]=-84;
 
-	float errorPrevA = 0;	//used to calculate derivatives of error
-	float errorPrevB = 0;
-	float errorPrevC = 0;
+    }
+    else if (direction==4)
+    {
+        motor[motorA]=40;
+        motor[motorB]=-20;
+        motor[motorC]=-20;
 
-	float errorSumA = 0;	//integrals of error
-	float errorSumB = 0;
-	float errorSumC = 0;
-
-	//setInitialSpeed(motor[motorA], motor[motorB], motor[motorC], x, y, xGoal, yGoal);
-	motor[motorA] = 0;
-	motor[motorB] = 0;
-	motor[motorC] = 0;
-
-	float motorAGoal, motorBGoal, motorCGoal;
-	if (direction==1)
-	{
-		motorAGoal = (0 +  correctValueA);
-		motorBGoal = -(0.7 + correctValueB);
-		motorCGoal = (0.7  + correctValueC);
-	}
-	else if(direction==2)
-	{
-		motorAGoal = (0 + correctValueA);
-		motorBGoal = (0.7 + correctValueB);
-		motorCGoal = -(0.7 + correctValueC);
-	}
-	else if (direction==4)
-	{
-		motorAGoal = (0.80 + correctValueA);
-		motorBGoal = -(0.20 + correctValueB);
-		motorCGoal = -(0.20 + correctValueC);
-	}
-	else if (direction==3)
-	{
-		motorAGoal = -(0.80+ correctValueA);
-		motorBGoal = (0.20 + correctValueB);
-		motorCGoal = (0.20 + correctValueC);
-	}
-	//setMotorGoals(motorAGoal, motorBGoal, motorCGoal, x, y, xGoal, yGoal);
-	//	int counter = 0;
-
-	while (notReceived(4)) //And while not at position
-	{
-		float encoderIA = nMotorEncoder[motorA];	//gets first point for calculations
-		float encoderIB = nMotorEncoder[motorB];
-		float encoderIC = nMotorEncoder[motorC];
-
-		wait1Msec(time); //waits so we can track a change in encoder position and calculate velocity
-
-		float encoderFA = nMotorEncoder[motorA];	//ges the second point for calculations
-		float encoderFB = nMotorEncoder[motorB];
-		float encoderFC = nMotorEncoder[motorC];
-
-		float errorA = motorAGoal - (encoderFA - encoderIA)/time;	//calculates error (for P control)
-		float errorB = motorBGoal - (encoderFB - encoderIB)/time;
-		float errorC = motorCGoal - (encoderFC - encoderIC)/time;
-
-
-		float errorDA = (errorA - errorPrevA)/time;	//calculates derivative of error using current error and past error
-		float errorDB = (errorB - errorPrevB)/time;
-		float errorDC = (errorC - errorPrevC)/time;
-
-
-		errorSumA += errorA * time;					//adds to the sum of the error (integral)
-		errorSumB += errorB * time;
-		errorSumC += errorC * time;
-
-		motor[motorA] = convert(kP * errorA + kD * errorDA + kI * errorSumA);	//convert turns sum of paths into motor output through math or something
-		motor[motorB] = convert(kP * errorB + kD * errorDB + kI * errorSumB);
-		motor[motorC] = convert(kP * errorC + kD * errorDC + kI * errorSumC);
+    }
+    else if (direction==3)
+    {
+        motor[motorA]=-40;
+        motor[motorB]=20;
+        motor[motorC]=20;
+    }
 
 
 
-		errorPrevA = errorA;
-		errorPrevB = errorB;
-		errorPrevC = errorC;
 
-	}
+	while (notReceived(4)) //while the sensor block hasn't sent a message based on the ultrasonic sensor
+	{}
 	motor[motorA] = 0;
 	motor[motorB] = 0;
 	motor[motorC] = 0;
 }
 
-float perimeterY()
+float perimeterY() //calculates the length of the room
 {
-	float encoderBI=nMotorEncoder[motorB];
+	float encoderBI=nMotorEncoder[motorB]; //set initial motor encoders
 	float encoderCI=nMotorEncoder[motorC];
-	drive(1,1000000);
-	float encoderBF=nMotorEncoder[motorB];
+	drive(1,1000000); //drive fowards until it receives a message from the touch sensor (that it hit the front)
+	float encoderBF=nMotorEncoder[motorB]; //set final motor encder
 	float encoderCF=nMotorEncoder[motorC];
 	float encoderB=encoderBF-encoderBI;
-	float encoderC=encoderCF-encoderCI;
-	float distY= ((((-15.072*encoderB/360)/cos(PI/6))+((15.072*encoderC/360)/cos(PI/6))/2));
-	drive(2,distY);
+	float encoderC=encoderCF- encoderCI;
+	float distY= ((((-15.072*encoderB/360)/cos(PI/6))+((15.072*encoderC/360)/cos(PI/6))/2)); //calculates distance travelled
+	drive(2,distY); //drive back the length of the room
 	motor[motorA]=motor[motorB]=motor[motorC]=0;
-	return distY;
+	return distY+20; //return length of room
 }
 
-float perimeterX()
+float perimeterX() //calculates the width of the room
 {
-	float encoderAI=nMotorEncoder[motorA];
-	drive(3,1000000);
-	float encoderAF=nMotorEncoder[motorA];
+	float encoderAI=nMotorEncoder[motorA]; //set initial motor encoder
+	drive(3,1000000); //drive right until a touch sensor hits
+	float encoderAF=nMotorEncoder[motorA]; //set final motor encoder
 	float encoderA=encoderAF-encoderAI;
-	float distX=-((15.072*encoderA/360));
-	displayString(2,"%f",distX);
-	drive(4,distX);
+	float distX=-((15.072*encoderA/360)); //calculates distance travelled
+	drive(4,distX); //drive left the width of the room to return to initial position
 	motor[motorA]=motor[motorB]=motor[motorC]=0;
-	return distX;
+	return distX; //returns width of room
 }
-int reps(float widthOfRoom)
+int reps(float widthOfRoom) //calculates the repititions needed to clean the room
 {
 int lengthOfRobot=32;
 return widthOfRoom/(1.2*lengthOfRobot);
 }
-float distX(float widthOfRoom)
+float distX(float widthOfRoom) //calculates the distance to be travelled right for each repitition
 {
 	int repitition=reps(widthOfRoom);
 	return widthOfRoom/repitition;
 }
 
-float obstacle(int direction)
+float obstacle(int direction) //avoids obstacles
 {
 	nMotorEncoder[motorA]=0;
-
-	driveObstacle(3);
-	float returnDist= -encoderCalcStrafe();
-displayString(3, "%f", returnDist);
+	if(direction==1)
+		drive(2,10); //reverse slightly
+	if(direction==2)
+		drive(1,10); //move forward slightly
+	driveObstacle(3); //drive right until the ultrasonic sensor sends a message that it can no longer see an obstacle
+	float returnDist= -encoderCalcStrafe(); //calculate distance travelled right to avoid obstacle
 	nMotorEncoder[motorB]=0;
 	nMotorEncoder[motorC]=0;
 	if(direction==1)
-		driveObstacle(1);
+		driveObstacle(1); //drive forward until the ultrasonic sensor sends a message that it can no longer see an obstacle
 	else if(direction==2)
-		driveObstacle(2);
-	float lengthOfObstacle=encoderCalcDrive();
-	drive(4, returnDist);
-	return lengthOfObstacle;
+		driveObstacle(2); //drive backwards until the ultrasonic sensor sends a message that it can no longer see an obstacle
+	float lengthOfObstacle=encoderCalcDrive(); //calculates the length of the obstacle
+	drive(4, returnDist); //drive left the distance that was initially driven right
+	return lengthOfObstacle; // return the length of the obstacle
 }
 
 task main()
 {
 	ClearMessage();
-	float widthOfRoom=perimeterX();
-	float distanceY=perimeterY();
-	int repitition=reps(widthOfRoom)/2;
-	float distanceX= distX(widthOfRoom);
+  float widthOfRoom=perimeterX(); //calculate the width of the room
+	float distanceY=perimeterY(); //calculate the length of the room
+	int repitition=reps(widthOfRoom); //calculate how many repititions of the cleaning cycle it needs to do
+	float distanceX= distX(widthOfRoom); //calculate the distance per strafe on the repititions
 	bool hit= false;
 	int counter=0;
 
-	while((counter<repitition)&&hit!=1)
+	while((counter<repitition-3)&&hit!=1)// run while it hasn't hit the bottom, or has not completed all of its repititions
 	{
-		hit=drive(1,distanceY-20);
-		if(hit)
+		hit=drive(1,distanceY-40); //drive forward -20cm for clearance from wall
+		if(hit) //if it hit something go through obstacle functions
 		{
-			float lengthOfObstacle=obstacle(1);
-			drive(1, distanceY-lengthOfObstacle-20);
-			hit=false;
+			float lengthOfObstacle=obstacle(1); //drive around the obstacle
+			drive(1, distanceY-lengthOfObstacle +10); //drive forward the remainder of the distance
+			hit=false; //reset hit
 		}
-		drive(3, distanceX);
-		hit=drive(2, distanceY-20);
-		if(hit)
+		drive(3, distanceX); //drive right
+		hit=drive(2, (distanceY+20) ); //drive backwards -20cm for clearance from wall
+		if(hit) //if it hits something go through obstacle functions
 		{
-			wait1Msec(2000);
-			float lengthOfObstacle=obstacle(2);
-			drive(2, distanceY-lengthOfObstacle-20);
-			hit=false;
+			wait1Msec(2000); //wait for sensor to rotate
+			float lengthOfObstacle=obstacle(2); //drive around the obstacle
+			drive(2, distanceY+lengthOfObstacle); //drive the remainder of the distance
+			hit=false; //reset hit
 		}
-		hit=drive(3, distanceX);
+		hit=drive(3, distanceX);//drive right
+        counter++;
 	}
 	motor[motorA]=0;
 	motor[motorB]=0;
 	motor[motorC]=0;
 
-//ClearMessage();
-/*bool hit=drive(1,1000);
-if(hit)
-		{
-				float lengthOfObstacle=obstacle(1);
-			drive(1, 1000-lengthOfObstacle);
-		}
-	*/
-
-/*bool hit=drive(2,10000);
-	if(hit)
-		{
-			motor[motorA]=0;
-			motor[motorB]=0;
-			motor[motorC]=0;
-			wait1Msec(2000);
-			float lengthOfObstacle=obstacle(2);
-			drive(2, 10000-lengthOfObstacle);
-		}
-
-		/*float obsDist=obstacle(1);
-		displayString(1,"%f",obsDist);
-		wait1Msec(3000);
-	*/
 }
